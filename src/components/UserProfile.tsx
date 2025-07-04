@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import Toast from './Toast';
 import AdminPanel from './AdminPanel';
+import ProfileForm from './ProfileForm';
+import ProfileModal from './ProfileModal';
 
 const ADMIN_EMAIL = "kekdanik715@gmail.com";
 
@@ -29,6 +31,7 @@ const UserProfile: React.FC = () => {
   const { profile, loading, updateProfile, uploadAvatar, uploadBanner, changePassword } = useProfile();
   
   const [isEditing, setIsEditing] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [editData, setEditData] = useState({
     full_name: '',
     username: '',
@@ -173,6 +176,19 @@ const UserProfile: React.FC = () => {
     showToast('Вы успешно вышли из аккаунта', 'info');
   };
 
+  // Calculate age from birth_date
+  const calculateAge = (birthDate: string) => {
+    if (!birthDate) return null;
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -195,6 +211,8 @@ const UserProfile: React.FC = () => {
       </div>
     );
   }
+
+  const userAge = calculateAge(profile.birth_date || '');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -308,6 +326,13 @@ const UserProfile: React.FC = () => {
                     {user.email}
                   </div>
                   
+                  {userAge && (
+                    <div className="flex items-center">
+                      <Calendar size={16} className="mr-1" />
+                      {userAge} years old
+                    </div>
+                  )}
+                  
                   {profile.phone && (
                     <div className="flex items-center">
                       <Phone size={16} className="mr-1" />
@@ -333,49 +358,23 @@ const UserProfile: React.FC = () => {
                       Web site
                     </a>
                   )}
-                  
-                  {profile.birth_date && (
-                    <div className="flex items-center">
-                      <Calendar size={16} className="mr-1" />
-                      {new Date(profile.birth_date).toLocaleDateString('ru-RU')}
-                    </div>
-                  )}
                 </div>
               </div>
 
               {/* Кнопки действий */}
               <div className="flex space-x-2">
-                {isEditing ? (
-                  <>
-                    <button
-                      onClick={handleSave}
-                      className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                    >
-                      <Save size={16} className="mr-2" />
-                      Save
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                    >
-                      <X size={16} className="mr-2" />
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={handleEdit}
-                    className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    <Edit3 size={16} className="mr-2" />
-                    Edit
-                  </button>
-                )}
+                <button
+                  onClick={() => setShowProfileModal(true)}
+                  className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  <Edit3 size={16} className="mr-2" />
+                  Edit Profile
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Форма редактирования */}
+          {/* Форма редактирования (старая версия для совместимости) */}
           {isEditing && (
             <div className="border-t border-gray-200 p-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
@@ -532,6 +531,24 @@ const UserProfile: React.FC = () => {
                   )}
                 </div>
               </div>
+
+              {/* Action buttons for old form */}
+              <div className="flex space-x-2 mt-6">
+                <button
+                  onClick={handleSave}
+                  className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                >
+                  <Save size={16} className="mr-2" />
+                  Save
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  <X size={16} className="mr-2" />
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
 
@@ -553,6 +570,12 @@ const UserProfile: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal 
+        isOpen={showProfileModal} 
+        onClose={() => setShowProfileModal(false)} 
+      />
 
       {/* Toast уведомления */}
       {toast && <Toast message={toast.msg} type={toast.type} />}
