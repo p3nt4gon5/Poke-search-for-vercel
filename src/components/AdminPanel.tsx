@@ -10,7 +10,8 @@ import {
   TrendingUp,
   Shield,
   Database,
-  Download
+  Download,
+  PieChart
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUserStats } from '../hooks/useUserStats';
@@ -22,8 +23,9 @@ import AdminAddPokemonPage from './admin/AdminAddPokemonPage';
 import AdminEmptyPage from './admin/AdminEmptyPage';
 import AdminAllPokemonPage from './admin/AdminAllPokemonPage';
 import AdminDatabasePokemonPage from './admin/AdminDatabasePokemonPage';
+import AdminDatabaseStatsPage from './admin/AdminDatabaseStatsPage';
 
-type AdminView = 'dashboard' | 'users' | 'pokemon' | 'stats' | 'management' | 'add-pokemon' | 'empty' | 'all-pokemon' | 'database-pokemon';
+type AdminView = 'dashboard' | 'users' | 'pokemon' | 'stats' | 'management' | 'add-pokemon' | 'empty' | 'all-pokemon' | 'database-pokemon' | 'database-stats';
 
 const AdminPanel: React.FC = () => {
   const { user } = useAuth();
@@ -88,6 +90,8 @@ const AdminPanel: React.FC = () => {
           return <AdminAllPokemonPage onBack={() => setCurrentView('dashboard')} />;
         case 'database-pokemon':
           return <AdminDatabasePokemonPage onBack={() => setCurrentView('dashboard')} />;
+        case 'database-stats':
+          return <AdminDatabaseStatsPage onBack={() => setCurrentView('dashboard')} />;
         case 'empty':
           return <AdminEmptyPage onBack={() => setCurrentView('dashboard')} />;
         default:
@@ -125,18 +129,27 @@ const AdminPanel: React.FC = () => {
     {
       id: 'database-pokemon',
       title: 'Database Pokémon',
-      description: 'Manage Pokémon stored in your database',
+      description: 'Manage Pokémon stored in your database with visibility controls',
       icon: Database,
       color: 'from-green-500 to-green-600',
-      stats: 'Database Only',
+      stats: 'Hide/Show & NEW tags',
       onClick: () => setCurrentView('database-pokemon')
     },
     {
-      id: 'stats',
-      title: 'Statistics',
-      description: 'View detailed analytics and user statistics',
-      icon: BarChart3,
+      id: 'database-stats',
+      title: 'Database Statistics',
+      description: 'Detailed user statistics and database analytics',
+      icon: PieChart,
       color: 'from-indigo-500 to-indigo-600',
+      stats: 'User insights',
+      onClick: () => setCurrentView('database-stats')
+    },
+    {
+      id: 'stats',
+      title: 'General Statistics',
+      description: 'View general analytics and user statistics',
+      icon: BarChart3,
+      color: 'from-orange-500 to-orange-600',
       stats: `${statsLoading ? '...' : favoritesCount} favorites`,
       onClick: () => setCurrentView('stats')
     },
@@ -148,15 +161,6 @@ const AdminPanel: React.FC = () => {
       color: 'from-red-500 to-red-600',
       stats: 'Admin tools',
       onClick: () => setCurrentView('management')
-    },
-    {
-      id: 'add-pokemon',
-      title: 'Add Pokémon (Legacy)',
-      description: 'Legacy Pokemon addition interface',
-      icon: Plus,
-      color: 'from-yellow-500 to-yellow-600',
-      stats: 'Legacy feature',
-      onClick: () => setCurrentView('add-pokemon')
     }
   ];
 
@@ -244,7 +248,7 @@ const AdminPanel: React.FC = () => {
       {/* Footer */}
       <div className="mt-8 pt-6 border-t border-gray-200">
         <div className="flex items-center justify-between text-sm text-gray-500">
-          <span>Admin Panel v2.0 - Database Integration</span>
+          <span>Admin Panel v3.0 - Enhanced Database Management</span>
           <span>Last updated: {new Date().toLocaleDateString()}</span>
         </div>
       </div>

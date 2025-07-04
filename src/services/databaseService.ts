@@ -12,6 +12,8 @@ export interface DatabasePokemon {
   sprites: any;
   species_url?: string;
   is_active: boolean;
+  is_hidden?: boolean;
+  new_until?: string;
   created_at: string;
   updated_at: string;
 }
@@ -19,6 +21,26 @@ export interface DatabasePokemon {
 export class DatabaseService {
   // Получить всех покемонов из базы данных
   static async getAllPokemon(): Promise<DatabasePokemon[]> {
+    try {
+      const { data, error } = await supabase
+        .from('external_pokemon')
+        .select('*')
+        .eq('is_active', true)
+        .order('id');
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching pokemon from database:', error);
+      throw error;
+    }
+  }
+
+  // Получить всех покемонов для админов (включая скрытых)
+  static async getAllPokemonForAdmin(): Promise<DatabasePokemon[]> {
     try {
       const { data, error } = await supabase
         .from('external_pokemon')
@@ -98,7 +120,9 @@ export class DatabaseService {
         stats: pokemon.stats,
         sprites: pokemon.sprites,
         species_url: pokemon.species?.url || null,
-        is_active: true
+        is_active: true,
+        is_hidden: false, // По умолчанию покемон видимый
+        new_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 дней
       };
 
       console.log('Pokemon data to insert:', pokemonData);
@@ -154,8 +178,55 @@ export class DatabaseService {
     }
   }
 
+  // Скрыть/показать покемона
+  static async togglePokemonVisibility(pokemonId: number, isHidden: boolean): Promise<void> {
+    try {
+      // Проверяем права администратора
+      const isAdmin = await this.checkAdminRights();
+      if (!isAdmin) {
+        throw new Error('У вас нет прав администратора для выполнения этого действия');
+      }
+
+      const { error } = await supabase
+        .from('external_pokemon')
+        .update({ is_hidden: isHidden })
+        .eq('id', pokemonId);
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error toggling pokemon visibility:', error);
+      throw error;
+    }
+  }
+
   // Поиск покемонов в базе данных
   static async searchPokemonInDatabase(query: string): Promise<DatabasePokemon[]> {
+    try {
+      const { data, error } = await supabase
+        .from('external_pokemon')
+        .select('*')
+        .eq('is_active', true)
+        .eq('is_hidden', false) // Исключаем скрытых покемонов для обычных пользователей
+        .ilike('name', `%${query}%`)
+        .order('id')
+        .limit(20);
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      return data || [];
+    } catch (error) {
+      console.error('Error searching pokemon in database:', error);
+      return [];
+    }
+  }
+
+  // Поиск покемонов для админов (включая скрытых)
+  static async searchPokemonInDatabaseForAdmin(query: string): Promise<DatabasePokemon[]> {
     try {
       const { data, error } = await supabase
         .from('external_pokemon')
@@ -218,7 +289,9 @@ export class DatabaseService {
         stats: pokemon.stats,
         sprites: pokemon.sprites,
         species_url: pokemon.species?.url || null,
-        is_active: true
+        is_active: true,
+        is_hidden: false,
+        new_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       }));
 
       const { error } = await supabase

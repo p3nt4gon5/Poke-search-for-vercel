@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Search, Trash2, Eye, EyeOff, Edit } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, Eye, EyeOff, Edit, Star } from 'lucide-react';
 import { useDatabasePokemon } from '../../hooks/useDatabasePokemon';
 import { DatabaseService } from '../../services/databaseService';
+import { supabase } from '../../lib/supabase';
 
 interface AdminDatabasePokemonPageProps {
   onBack: () => void;
@@ -11,6 +12,7 @@ const AdminDatabasePokemonPage: React.FC<AdminDatabasePokemonPageProps> = ({ onB
   const { pokemon, loading, refetch } = useDatabasePokemon();
   const [searchTerm, setSearchTerm] = useState('');
   const [removingPokemon, setRemovingPokemon] = useState<Set<number>>(new Set());
+  const [updatingVisibility, setUpdatingVisibility] = useState<Set<number>>(new Set());
 
   const handleRemovePokemon = async (pokemonId: number, pokemonName: string) => {
     if (!window.confirm(`Are you sure you want to remove ${pokemonName} from the database?`)) {
@@ -21,7 +23,7 @@ const AdminDatabasePokemonPage: React.FC<AdminDatabasePokemonPageProps> = ({ onB
 
     try {
       await DatabaseService.removePokemonFromDatabase(pokemonId);
-      await refetch(); // Обновляем список
+      await refetch();
     } catch (error) {
       console.error('Error removing pokemon:', error);
     } finally {
@@ -33,9 +35,36 @@ const AdminDatabasePokemonPage: React.FC<AdminDatabasePokemonPageProps> = ({ onB
     }
   };
 
+  const handleToggleVisibility = async (pokemonId: number, currentlyHidden: boolean) => {
+    setUpdatingVisibility(prev => new Set([...prev, pokemonId]));
+
+    try {
+      const { error } = await supabase
+        .from('external_pokemon')
+        .update({ is_hidden: !currentlyHidden })
+        .eq('id', pokemonId);
+
+      if (error) throw error;
+      await refetch();
+    } catch (error) {
+      console.error('Error updating visibility:', error);
+    } finally {
+      setUpdatingVisibility(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(pokemonId);
+        return newSet;
+      });
+    }
+  };
+
   const filteredPokemon = pokemon.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Проверяем, является ли покемон новым
+  const isNew = (newUntil?: string) => {
+    return newUntil && new Date(newUntil) > new Date();
+  };
 
   if (loading) {
     return (
@@ -98,9 +127,20 @@ const AdminDatabasePokemonPage: React.FC<AdminDatabasePokemonPageProps> = ({ onB
                 }}
               />
               
-              <div className="absolute top-2 right-2">
-                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                  Active
+              {/* Статусы */}
+              <div className="absolute top-2 right-2 flex flex-col space-y-1">
+                {isNew((pokemon as any).new_until) && (
+                  <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs px-2 py-1 rounded-full flex items-center">
+                    <Star size={10} className="mr-1" />
+                    NEW
+                  </span>
+                )}
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  (pokemon as any).is_hidden 
+                    ? 'bg-red-100 text-red-800' 
+                    : 'bg-green-100 text-green-800'
+                }`}>
+                  {(pokemon as any).is_hidden ? 'Hidden' : 'Visible'}
                 </span>
               </div>
             </div>
@@ -130,17 +170,33 @@ const AdminDatabasePokemonPage: React.FC<AdminDatabasePokemonPageProps> = ({ onB
             
             <div className="flex space-x-2">
               <button
+                onClick={() => handleToggleVisibility(pokemon.id, (pokemon as any).is_hidden)}
+                disabled={updatingVisibility.has(pokemon.id)}
+                className={`flex-1 flex items-center justify-center px-3 py-2 rounded text-sm transition-colors ${
+                  (pokemon as any).is_hidden
+                    ? 'bg-green-500 text-white hover:bg-green-600'
+                    : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {updatingVisibility.has(pokemon.id) ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <>
+                    {(pokemon as any).is_hidden ? <Eye size={14} className="mr-1" /> : <EyeOff size={14} className="mr-1" />}
+                    {(pokemon as any).is_hidden ? 'Show' : 'Hide'}
+                  </>
+                )}
+              </button>
+              
+              <button
                 onClick={() => handleRemovePokemon(pokemon.id, pokemon.name)}
                 disabled={removingPokemon.has(pokemon.id)}
-                className="flex-1 flex items-center justify-center px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {removingPokemon.has(pokemon.id) ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 ) : (
-                  <>
-                    <Trash2 size={14} className="mr-1" />
-                    Remove
-                  </>
+                  <Trash2 size={14} />
                 )}
               </button>
             </div>
