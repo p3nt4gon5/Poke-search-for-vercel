@@ -21,6 +21,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
 
   const { signIn, signUp, signInWithGoogle, resetPassword } = useAuth();
 
+  // sdsdsdsd
+
+  const isPasswordValid = (pwd: string): boolean => {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+    return regex.test(pwd);
+  };
+
+
   if (!isOpen) return null;
 
   // Handle form submission for different auth modes
@@ -39,6 +47,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
         if (password !== confirmPassword) {
           throw new Error('Passwords do not match');
         }
+        // if (!isPasswordValid(password)) {
+        if (!isPasswordValid(password)) {
+        throw new Error('Password must be at least 8 characters and include uppercase, lowercase, number, and special character.');
+      }
+
         if (password.length < 6) {
           throw new Error('Password must be at least 6 characters');
         }
