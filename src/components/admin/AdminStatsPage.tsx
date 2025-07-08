@@ -98,9 +98,11 @@ const AdminStatsPage: React.FC<AdminStatsPageProps> = ({ onBack }) => {
         registrationsByDate[date] = (registrationsByDate[date] || 0) + 1;
       });
 
-      const userRegistrations = Object.entries(registrationsByDate)
-        .map(([date, count]) => ({ date, count }))
-        .slice(-14); // Last 14 days
+      const userRegistrationsRaw = Object.entries(registrationsByDate)
+        .map(([date, count]) => ({ date, count: Number(count) }));
+
+      // Заполнить пропущенные даты нулями
+      const userRegistrations = fillMissingDates(userRegistrationsRaw, 14);
 
       // Daily activity data
       const { data: activityData } = await supabase
@@ -135,6 +137,20 @@ const AdminStatsPage: React.FC<AdminStatsPageProps> = ({ onBack }) => {
       setLoading(false);
     }
   };
+
+  // Декоратор для заполнения пропущенных дней нулями
+  function fillMissingDates(registrations: Array<{ date: string; count: number }>, days: number = 14) {
+    const result: Array<{ date: string; count: number }> = [];
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const found = registrations.find(r => r.date === dateStr);
+      result.push({ date: dateStr, count: found ? found.count : 0 });
+    }
+    return result;
+  }
 
   if (loading) {
     return (
