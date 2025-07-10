@@ -40,7 +40,8 @@ const UserProfile: React.FC = () => {
     website: '',
     location: '',
     birth_date: '',
-    is_public: true
+    is_public: true,
+    email_notifications: true
   });
   
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -67,7 +68,8 @@ const UserProfile: React.FC = () => {
         website: profile.website || '',
         location: profile.location || '',
         birth_date: profile.birth_date || '',
-        is_public: profile.is_public
+        is_public: profile.is_public,
+        email_notifications: profile.email_notifications
       });
     }
   }, [profile]);
@@ -117,7 +119,8 @@ const UserProfile: React.FC = () => {
         website: profile.website || '',
         location: profile.location || '',
         birth_date: profile.birth_date || '',
-        is_public: profile.is_public
+        is_public: profile.is_public,
+        email_notifications: profile.email_notifications
       });
     }
     setIsEditing(false);
